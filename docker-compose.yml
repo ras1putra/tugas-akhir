@@ -1,0 +1,99 @@
+version: '3.8'
+
+services:
+  frontend-main:
+    build:
+      context: ./frontend-tugas-akhir
+      target: prod
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./frontend-tugas-akhir/.env
+    depends_on:
+      - backend-main
+    restart: unless-stopped
+
+  frontend-admin:
+    build:
+      context: ./admin-tugas-akhir
+      target: prod
+    ports:
+      - "3001:3000"
+    env_file:
+      - ./admin-tugas-akhir/.env
+    depends_on:
+      - backend-main
+    restart: unless-stopped
+
+  backend-main:
+    build:
+      context: ./backend-tugas-akhir
+      target: prod
+    ports:
+      - "4000:4000"
+    env_file:
+      - ./backend-tugas-akhir/.env
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  backend-worker:
+    build:
+      context: ./backend-2-tugas-akhir
+      target: prod
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend-2-tugas-akhir/.env
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - "127.0.0.1:54321:5432"
+    env_file:
+      - ./.env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data:ro
+    restart: unless-stopped
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data:ro
+    restart: unless-stopped
+
+  celery:
+    build:
+      context: ./backend-2-tugas-akhir
+      target: prod
+    command: celery -A src.worker worker --loglevel=info
+    env_file:
+      - ./backend-2-tugas-akhir/.env
+    depends_on:
+      - redis
+      - backend-worker
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - frontend-main
+      - frontend-admin
+      - backend-main
+      - backend-worker
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:

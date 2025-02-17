@@ -1,0 +1,12 @@
+[submodule "frontend-tugas-akhir"]
+	path = frontend-tugas-akhir
+	url = git@github.com:ras1putra/frontend-tugas-akhir.git
+[submodule "backend-tugas-akhir"]
+	path = backend-tugas-akhir
+	url = git@github.com:ras1putra/backend-tugas-akhir.git
+[submodule "backend-2-tugas-akhir"]
+	path = backend-2-tugas-akhir
+	url = git@github.com:ras1putra/backend-2-tugas-akhir.git
+[submodule "admin-tugas-akhir"]
+	path = admin-tugas-akhir
+	url = git@github.com:ras1putra/admin-tugas-akhir.git
