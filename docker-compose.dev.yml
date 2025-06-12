@@ -8,8 +8,9 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./frontend-tugas-akhir:/app:delegated
+      - ./frontend-tugas-akhir:/app:rw
       - /app/node_modules
+      - /app/.next/
     env_file:
       - ./frontend-tugas-akhir/.env
     depends_on:
@@ -25,6 +26,7 @@ services:
     volumes:
       - ./admin-tugas-akhir:/app:rw
       - /app/node_modules
+      - /app/.next/
     env_file:
       - ./admin-tugas-akhir/.env
     depends_on:
@@ -61,22 +63,30 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_started
     restart: unless-stopped
 
   postgres:
-    image: postgres:15-alpine
+    image: postgres:16-alpine
     ports:
       - "127.0.0.1:54321:5432"
     env_file:
       - .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./scripts:/scripts
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER"]
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB && (pg_isready -U $POSTGRES_USER -d $POSTGRES_DB_WORKER)"]
       interval: 5s
       timeout: 5s
       retries: 5
+    command: >
+      bash -c "docker-entrypoint.sh postgres & 
+      sleep 10 && 
+      PGUSER=$POSTGRES_USER PGPASSWORD=$POSTGRES_PASSWORD /scripts/database.sh &&
+      wait"
 
   redis:
     image: redis:alpine
@@ -84,21 +94,6 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
-    restart: unless-stopped
-
-  celery:
-    build:
-      context: ./backend-2-tugas-akhir
-      target: dev
-    command: uv run celery -A src.worker worker --loglevel=info
-    volumes:
-      - ./backend-2-tugas-akhir:/app
-      - /app/.venv
-    env_file:
-      - ./backend-2-tugas-akhir/.env
-    depends_on:
-      - redis
-      - backend-worker
     restart: unless-stopped
 
   nginx:

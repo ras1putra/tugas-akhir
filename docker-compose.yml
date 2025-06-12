@@ -34,7 +34,8 @@ services:
     env_file:
       - ./backend-tugas-akhir/.env
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
 
   backend-worker:
@@ -46,18 +47,32 @@ services:
     env_file:
       - ./backend-2-tugas-akhir/.env
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
     restart: unless-stopped
 
   postgres:
-    image: postgres:15-alpine
+    image: postgres:16-alpine
     ports:
       - "127.0.0.1:54321:5432"
     env_file:
-      - ./.env
+      - .env
     volumes:
       - postgres_data:/var/lib/postgresql/data:ro
+      - ./scripts:/scripts:ro
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB && (pg_isready -U $POSTGRES_USER -d $POSTGRES_DB_WORKER)"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    command: >
+      bash -c "docker-entrypoint.sh postgres & 
+      sleep 10 && 
+      PGUSER=$POSTGRES_USER PGPASSWORD=$POSTGRES_PASSWORD /scripts/database.sh &&
+      wait"
 
   redis:
     image: redis:alpine
