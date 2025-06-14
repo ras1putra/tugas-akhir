@@ -84,18 +84,6 @@ services:
       - redis_data:/data
     restart: unless-stopped
 
-  celery:
-    build:
-      context: ./backend-2-tugas-akhir
-      target: prod
-    command: celery -A src.worker worker --loglevel=info
-    env_file:
-      - ./backend-2-tugas-akhir/.env
-    depends_on:
-      - redis
-      - backend-worker
-    restart: unless-stopped
-
   nginx:
     image: nginx:alpine
     ports:
